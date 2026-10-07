@@ -21,6 +21,9 @@
 
 <script type="module">
 import * as THREE from 'https://unpkg.com/three@0.169.0/build/three.module.js';
+import { createNoise2D } from 'https://esm.sh/simplex-noise@4.0.1';
+
+const noise = createNoise2D();
 
 // Escena
 const scene = new THREE.Scene();
@@ -53,26 +56,33 @@ scene.add(sun);
 
 // Geometría del terreno
 const terrainGeometry = new THREE.PlaneGeometry(
-    100, // ancho
-    100, // largo
+    1000, // ancho
+    1000, // largo
     100, // segmentos X
     100  // segmentos Y
 );
+function mountain(x, y, mountainX, mountainY, height, radius) {
 
+    const dx = x - mountainX;
+    const dy = y - mountainY;
+
+    return height * Math.exp(
+        -(dx * dx + dy * dy) / (2 * radius * radius)
+    );
+}
 const vertices = terrainGeometry.attributes.position;
-
+console.log(vertices.count);
 // Crear montaña central
 for (let i = 0; i < vertices.count; i++) {
 
     const x = vertices.getX(i);
     const y = vertices.getY(i);
 
-    const distance = Math.sqrt(x * x + y * y);
+    let altura = 0;
 
-    // Elevación suave
-    let height = Math.max(0, 20 - distance * 0.5);
+    altura += mountain(x, y, 0, 0, 40, 15);
 
-    vertices.setZ(i, height);
+    vertices.setZ(i, altura);
 }
 
 terrainGeometry.computeVertexNormals();
