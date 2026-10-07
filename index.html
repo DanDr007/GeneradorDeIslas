@@ -79,27 +79,45 @@ const terrainGeometry = new THREE.PlaneGeometry(
     100, // segmentos X
     100  // segmentos Y
 );
-function getRandomArray(length, min, max) {
-    const arr = [];
-    for (let i = 0; i < length; i++) {
-        arr[i] = [];
-        for (let j = 0; j < length; j++) {
-        arr[i][j] = Math.floor(Math.random() * (max - min) + min);
-        }
-    }
-    return arr;
-}
-function generarCentrosMontanas(cantidad = 10, tamaño = 101) {
+function generarCentrosDunas(cantidad = 10, tamaño = 101) {
     const mapa = Array.from(
+    { length: tamaño },
+    () => Array.from(
         { length: tamaño },
-        () => Array(tamaño).fill(0)
-    );
-
+        () => [0, 0]
+    )
+);
     for (let i = 0; i < cantidad; i++) {
         const x = Math.floor(Math.random() * tamaño);
         const y = Math.floor(Math.random() * tamaño);
 
-        mapa[y][x] = Math.floor(Math.random() * 200) + 50; // Altura aleatoria entre 50 y 100            
+        mapa[y][x][0] = Math.floor(Math.random() * 10) + 20;  
+        mapa[y][x][1] = Math.floor(Math.random() * 50) + 200;  
+    }
+
+    return mapa;
+}
+function generarCentrosMontanas(cantidad = 10, tamaño = 101) {
+    const mapa = Array.from(
+    { length: tamaño },
+    () => Array.from(
+        { length: tamaño },
+        () => [0, 0]
+    )
+);
+    for (let i = 0; i < cantidad; i++) {
+        const x = Math.floor(Math.random() * tamaño);
+        const y = Math.floor(Math.random() * tamaño);
+
+        mapa[y][x][0] = Math.floor(Math.random() * 30) + 20;  
+        mapa[y][x][1] = Math.floor(Math.random() * 50) + 100;  
+    }
+    for (let i = 0; i < cantidad; i++) {
+        const x = Math.floor(Math.random() * tamaño);
+        const y = Math.floor(Math.random() * tamaño);
+
+        mapa[y][x][0] = Math.floor(Math.random() * 100) + 100;
+        mapa[y][x][1] = Math.floor(Math.random() * 20) + 30;  
     }
 
     return mapa;
@@ -113,7 +131,7 @@ function mountain(x, y, mountainX, mountainY, height, radius) {
         -(dx * dx + dy * dy) / (2 * radius * radius)
     );
 
-    h += noise(x * 0.08, y * 0.08) * 3;
+    h += noise(x * 0.01, y * 0.01) * 3;
 
     return h;
 }
@@ -131,9 +149,8 @@ for (let i = 0; i < vertices.count; i++) {
     let altura = 0;
     for (let j = 0; j < mapa.length; j++) {
         for (let k = 0; k < mapa[j].length; k++) {
-            if (mapa[j][k] >1){
-            altura += mountain(x, y, (j-50)*5, (k-50)*5, mapa[j][k],50);
-            console.log(`Altura en (${x}, ${y}) con centro en (${j-50}, ${k-50}): ${mapa[j][k]+70}`);
+            if (mapa[j][k][0] >1){
+            altura += mountain(x, y, (j-50)*5, (k-50)*5, mapa[j][k][0],mapa[j][k][1]);
             }
         }
         
@@ -143,14 +160,15 @@ for (let i = 0; i < vertices.count; i++) {
     altura += mountain(x, y, 30, 10, 45, 30);
     altura += mountain(x, y, -20, -15, 55, 20);*/
 
-    vertices.setZ(i, altura>0 ? altura : 0);
+    vertices.setZ(i, altura>30 ? altura : 0);
 }
 
 terrainGeometry.computeVertexNormals();
 
 // Material
 const terrainMaterial = new THREE.MeshStandardMaterial({
-    color: 0x4caf50,
+    color: 0x7D6B53 // Roca gris-marrón
+,
     flatShading: false
 });
 
@@ -163,7 +181,71 @@ const terrain = new THREE.Mesh(
 terrain.rotation.x = -Math.PI / 2;
 
 scene.add(terrain);
+//arena
+const arenaGeometry = new THREE.PlaneGeometry(
+    1000,
+    1000,
+    100,
+    100
+);
 
+const arenaMaterial = new THREE.MeshPhongMaterial({
+    color: 0xE2C17A // arena
+});
+
+const arena = new THREE.Mesh(
+    arenaGeometry,
+    arenaMaterial
+);
+
+arena.rotation.x = -Math.PI / 2;
+
+// Un poco por encima del agua
+arena.position.y = 0.1;
+
+scene.add(arena);
+const verticesA = arenaGeometry.attributes.position;
+let mapaA=generarCentrosDunas(3, 101);
+for (let i = 0; i < verticesA.count; i++) {
+    const x = verticesA.getX(i);
+    const y = verticesA.getY(i);
+
+    let altura = 0;
+    for (let j = 0; j < mapaA.length; j++) {
+        for (let k = 0; k < mapaA[j].length; k++) {
+            if (mapaA[j][k][0] >1){
+            altura += mountain(x, y, (j-50)*6, (k-50)*6, mapaA[j][k][0],mapaA[j][k][1]);
+            }
+        }
+        
+    }
+    verticesA.setZ(i, altura>20 ? altura : -1);
+}
+//el agua
+const aguaGeometry = new THREE.PlaneGeometry(
+    1000, // ancho
+    1000, // largo
+    1,
+    1
+);
+
+const aguaMaterial = new THREE.MeshPhongMaterial({
+    color: 0x3399ff,
+    transparent: true,
+    opacity: 0.7
+});
+
+const agua = new THREE.Mesh(
+    aguaGeometry,
+    aguaMaterial
+);
+
+agua.rotation.x = -Math.PI / 2;
+
+// Nivel del mar
+agua.position.y = 5;
+
+scene.add(agua);
 // Ejes para orientación (opcional)
 const axes = new THREE.AxesHelper(20);
 scene.add(axes);
