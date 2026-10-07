@@ -45,10 +45,10 @@ const camera = new THREE.PerspectiveCamera(
     60,
     window.innerWidth / window.innerHeight,
     0.1,
-    1000
+    4000
 );
 
-camera.position.set(0, 40, 60);
+camera.position.set(0, 40, 600);
 camera.lookAt(0, 0, 0);
 
 // Renderizador
@@ -79,6 +79,31 @@ const terrainGeometry = new THREE.PlaneGeometry(
     100, // segmentos X
     100  // segmentos Y
 );
+function getRandomArray(length, min, max) {
+    const arr = [];
+    for (let i = 0; i < length; i++) {
+        arr[i] = [];
+        for (let j = 0; j < length; j++) {
+        arr[i][j] = Math.floor(Math.random() * (max - min) + min);
+        }
+    }
+    return arr;
+}
+function generarCentrosMontanas(cantidad = 10, tamaño = 101) {
+    const mapa = Array.from(
+        { length: tamaño },
+        () => Array(tamaño).fill(0)
+    );
+
+    for (let i = 0; i < cantidad; i++) {
+        const x = Math.floor(Math.random() * tamaño);
+        const y = Math.floor(Math.random() * tamaño);
+
+        mapa[y][x] = Math.floor(Math.random() * 200) + 50; // Altura aleatoria entre 50 y 100            
+    }
+
+    return mapa;
+}
 function mountain(x, y, mountainX, mountainY, height, radius) {
 
     const dx = x - mountainX;
@@ -94,6 +119,9 @@ function mountain(x, y, mountainX, mountainY, height, radius) {
 }
 const vertices = terrainGeometry.attributes.position;
 console.log(vertices.count);
+let mapa=generarCentrosMontanas(5, 101);
+//console.log(mapa);
+
 // Crear montaña central
 for (let i = 0; i < vertices.count; i++) {
 
@@ -101,11 +129,21 @@ for (let i = 0; i < vertices.count; i++) {
     const y = vertices.getY(i);
 
     let altura = 0;
-
+    for (let j = 0; j < mapa.length; j++) {
+        for (let k = 0; k < mapa[j].length; k++) {
+            if (mapa[j][k] >1){
+            altura += mountain(x, y, (j-50)*5, (k-50)*5, mapa[j][k],50);
+            console.log(`Altura en (${x}, ${y}) con centro en (${j-50}, ${k-50}): ${mapa[j][k]+70}`);
+            }
+        }
+        
+    }
+    /*
     altura += mountain(x, y, 0, 0, 60, 35);
     altura += mountain(x, y, 30, 10, 45, 30);
-    altura += mountain(x, y, -20, -15, 55, 20);
-    vertices.setZ(i, altura>10 ? altura : 0);
+    altura += mountain(x, y, -20, -15, 55, 20);*/
+
+    vertices.setZ(i, altura>0 ? altura : 0);
 }
 
 terrainGeometry.computeVertexNormals();
