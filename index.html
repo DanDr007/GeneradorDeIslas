@@ -98,48 +98,51 @@ const terrainGeometry = new THREE.PlaneGeometry(
     100, // segmentos X
     100  // segmentos Y
 );
-function generarCentrosDunas(cantidad = 10, tamaño = 101) {
-    const mapa = Array.from(
-    { length: tamaño },
-    () => Array.from(
-        { length: tamaño },
-        () => [0, 0]
-    )
-);
-    for (let i = 0; i < cantidad; i++) {
-        const x = Math.floor(random() * tamaño);
-        const y = Math.floor(random() * tamaño);
+function generarCentrosDunas(cantidad = 10, size = 101) {
 
-        mapa[y][x][0] = Math.floor(random() * 10) + 20;  
-        mapa[y][x][1] = Math.floor(random() * 50) + 100;  
+    const dunas = [];
+
+    for (let i = 0; i < cantidad; i++) {
+
+        dunas.push({
+            x: Math.floor(random() * size),
+            y: Math.floor(random() * size),
+            altura: Math.floor(random() * 10) + 20,
+            radio: Math.floor(random() * 50) + 100
+        });
+
     }
 
-    return mapa;
+    return dunas;
 }
-function generarCentrosMontanas(cantidad = 10, tamaño = 101) {
-    const mapa = Array.from(
-    { length: tamaño },
-    () => Array.from(
-        { length: tamaño },
-        () => [0, 0]
-    )
-);
-    for (let i = 0; i < cantidad; i++) {
-        const x = Math.floor(random() * tamaño);
-        const y = Math.floor(random() * tamaño);
 
-        mapa[y][x][0] = Math.floor(random() * 30) + 20;  
-        mapa[y][x][1] = Math.floor(random() * 50) + 100;  
-    }
-    for (let i = 0; i < cantidad; i++) {
-        const x = Math.floor(random() * tamaño);
-        const y = Math.floor(random() * tamaño);
+function generarCentrosMontanas(cantidad = 10) {
 
-        mapa[y][x][0] = Math.floor(random() * 100) + 100;
-        mapa[y][x][1] = Math.floor(random() * 20) + 30;  
+    const montanas = [];
+
+    for (let i = 0; i < cantidad; i++) {
+
+        montanas.push({
+            x: Math.floor(random() * 101),
+            y: Math.floor(random() * 101),
+            altura: Math.floor(random() * 30) + 20,
+            radio: Math.floor(random() * 50) + 100
+        });
+
     }
 
-    return mapa;
+    for (let i = 0; i < cantidad; i++) {
+
+        montanas.push({
+            x: Math.floor(random() * 101),
+            y: Math.floor(random() * 101),
+            altura: Math.floor(random() * 100) + 100,
+            radio: Math.floor(random() * 20) + 30
+        });
+
+    }
+
+    return montanas;
 }
 function mountain(x, y, mountainX, mountainY, height, radius) {
 
@@ -160,26 +163,29 @@ let mapa=generarCentrosMontanas(5, 101);
 //console.log(mapa);
 
 // Crear montaña central
+const montanas = generarCentrosMontanas(5);
+
 for (let i = 0; i < vertices.count; i++) {
 
     const x = vertices.getX(i);
     const y = vertices.getY(i);
 
     let altura = 0;
-    for (let j = 0; j < mapa.length; j++) {
-        for (let k = 0; k < mapa[j].length; k++) {
-            if (mapa[j][k][0] >1){
-            altura += mountain(x, y, (j-50)*5, (k-50)*5, mapa[j][k][0],mapa[j][k][1]);
-            }
-        }
-        
-    }
-    /*
-    altura += mountain(x, y, 0, 0, 60, 35);
-    altura += mountain(x, y, 30, 10, 45, 30);
-    altura += mountain(x, y, -20, -15, 55, 20);*/
 
-    vertices.setZ(i, altura>30 ? altura : 0);
+    for (const m of montanas) {
+
+        altura += mountain(
+            x,
+            y,
+            (m.x - 50) * 5,
+            (m.y - 50) * 5,
+            m.altura,
+            m.radio
+        );
+
+    }
+
+    vertices.setZ(i, altura > 30 ? altura : -5);
 }
 
 terrainGeometry.computeVertexNormals();
@@ -224,21 +230,35 @@ arena.position.y = 0.1;
 
 scene.add(arena);
 const verticesA = arenaGeometry.attributes.position;
-let mapaA=generarCentrosDunas(6, 101);
+const dunas = generarCentrosDunas(6);
+
 for (let i = 0; i < verticesA.count; i++) {
+
     const x = verticesA.getX(i);
     const y = verticesA.getY(i);
 
     let altura = 0;
-    for (let j = 0; j < mapaA.length; j++) {
-        for (let k = 0; k < mapaA[j].length; k++) {
-            if (mapaA[j][k][0] >1){
-            altura += mountain(x, y, (j-50)*6, (k-50)*6, mapaA[j][k][0],mapaA[j][k][1]);
-            }
-        }
-        
+
+    for (const d of dunas) {
+
+        const dx = x - ((d.x - 50) * 6);
+        const dy = y - ((d.y - 50) * 6);
+
+        const distancia = Math.sqrt(dx * dx + dy * dy);
+
+        if (distancia > d.radio * 3) continue;
+
+        altura += mountain(
+            x,
+            y,
+            (d.x - 50) * 6,
+            (d.y - 50) * 6,
+            d.altura,
+            d.radio
+        );
     }
-    verticesA.setZ(i, altura>20 ? altura : -1);
+
+    verticesA.setZ(i, altura > 20 ? altura : -5);
 }
 //el agua
 const aguaGeometry = new THREE.PlaneGeometry(
