@@ -213,15 +213,15 @@ Esto reduce enormemente el número de cálculos necesarios para construir el ter
 
 ### Vista general
 
-screenshots/isla1.png
+![Vista general](screenshots/imagen1.png)
 
 ### Diferente semilla
 
-screenshots/isla2.png
+![Diferente semilla](screenshots/imagen2.png)
 
 ### Panel de control
 
-screenshots/controles.png
+![Panel de control](screenshots/imagen3.png)
 ``
 
 ## Autor Daniel Diaz Ramirez
