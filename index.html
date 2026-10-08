@@ -15,9 +15,94 @@
         canvas {
             display: block;
         }
+
+        #controls-panel {
+            position: fixed;
+            z-index: 1;
+            top: 16px;
+            left: 16px;
+            width: 260px;
+            max-height: calc(100vh - 32px);
+            overflow-y: auto;
+            box-sizing: border-box;
+            padding: 18px;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.92);
+            color: #1f2933;
+            font: 14px/1.4 system-ui, sans-serif;
+            box-shadow: 0 4px 18px rgba(0, 0, 0, 0.2);
+        }
+
+        #controls-panel h1 {
+            margin: 0 0 16px;
+            font-size: 18px;
+        }
+
+        #controls-panel label {
+            display: block;
+            margin: 14px 0 5px;
+            font-weight: 600;
+        }
+
+        #controls-panel input[type="range"],
+        #controls-panel input[type="text"] {
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        #controls-panel input[type="text"] {
+            padding: 7px;
+        }
+
+        #controls-panel button {
+            margin-top: 10px;
+            padding: 8px 10px;
+            border: 0;
+            border-radius: 5px;
+            background: #2563eb;
+            color: white;
+            cursor: pointer;
+        }
+
+        #controls-panel button:hover {
+            background: #1d4ed8;
+        }
+
+        #random-seed {
+            margin-left: 5px;
+            background: #475569;
+        }
+
+        #random-seed:hover {
+            background: #334155;
+        }
+
+        @media (max-width: 520px) {
+            #controls-panel {
+                top: 8px;
+                left: 8px;
+                width: min(260px, calc(100vw - 16px));
+                max-height: 48vh;
+            }
+        }
     </style>
 </head>
 <body>
+
+<aside id="controls-panel" aria-label="Controles del terreno">
+    <h1>Generador de terreno</h1>
+
+    <label for="water-level">Nivel del agua: <output id="water-value">5</output></label>
+    <input id="water-level" type="range" min="-10" max="80" step="1" value="5">
+
+    <label for="roundness">Redondez de la isla: <output id="roundness-value">50</output>%</label>
+    <input id="roundness" type="range" min="0" max="100" step="1" value="50">
+
+    <label for="seed">Semilla</label>
+    <input id="seed" type="text" value="MiIsla123" maxlength="40">
+    <button id="generate-terrain" type="button">Generar terreno</button>
+    <button id="random-seed" type="button">Semilla aleatoria</button>
+</aside>
 
 <script type="importmap">
 {
@@ -32,6 +117,15 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { createNoise2D } from 'https://esm.sh/simplex-noise@4.0.1';
+
+const waterLevelInput = document.querySelector('#water-level');
+const waterValue = document.querySelector('#water-value');
+const roundnessInput = document.querySelector('#roundness');
+const roundnessValue = document.querySelector('#roundness-value');
+const seedInput = document.querySelector('#seed');
+const generateButton = document.querySelector('#generate-terrain');
+const randomSeedButton = document.querySelector('#random-seed');
+
 function mulberry32(seed) {
     return function () {
         let t = seed += 0x6D2B79F5;
@@ -49,11 +143,8 @@ function stringToSeed(str) {
 
     return h >>> 0;
 }
-const random = mulberry32(
-stringToSeed("MiIsla123")
-);
-
-const noise = createNoise2D(random);
+let random = mulberry32(stringToSeed(seedInput.value));
+let noise = createNoise2D(random);
 
 // Escena
 const scene = new THREE.Scene();
@@ -158,37 +249,6 @@ function mountain(x, y, mountainX, mountainY, height, radius) {
     return h;
 }
 const vertices = terrainGeometry.attributes.position;
-console.log(vertices.count);
-let mapa=generarCentrosMontanas(5, 101);
-//console.log(mapa);
-
-// Crear montaña central
-const montanas = generarCentrosMontanas(5);
-
-for (let i = 0; i < vertices.count; i++) {
-
-    const x = vertices.getX(i);
-    const y = vertices.getY(i);
-
-    let altura = 0;
-
-    for (const m of montanas) {
-
-        altura += mountain(
-            x,
-            y,
-            (m.x - 50) * 5,
-            (m.y - 50) * 5,
-            m.altura,
-            m.radio
-        );
-
-    }
-
-    vertices.setZ(i, altura > 30 ? altura : -5);
-}
-
-terrainGeometry.computeVertexNormals();
 
 // Material
 const terrainMaterial = new THREE.MeshStandardMaterial({
@@ -230,36 +290,6 @@ arena.position.y = 0.1;
 
 scene.add(arena);
 const verticesA = arenaGeometry.attributes.position;
-const dunas = generarCentrosDunas(6);
-
-for (let i = 0; i < verticesA.count; i++) {
-
-    const x = verticesA.getX(i);
-    const y = verticesA.getY(i);
-
-    let altura = 0;
-
-    for (const d of dunas) {
-
-        const dx = x - ((d.x - 50) * 6);
-        const dy = y - ((d.y - 50) * 6);
-
-        const distancia = Math.sqrt(dx * dx + dy * dy);
-
-        if (distancia > d.radio * 3) continue;
-
-        altura += mountain(
-            x,
-            y,
-            (d.x - 50) * 6,
-            (d.y - 50) * 6,
-            d.altura,
-            d.radio
-        );
-    }
-
-    verticesA.setZ(i, altura > 20 ? altura : -5);
-}
 //el agua
 const aguaGeometry = new THREE.PlaneGeometry(
     1000, // ancho
@@ -281,10 +311,91 @@ const agua = new THREE.Mesh(
 
 agua.rotation.x = -Math.PI / 2;
 
-// Nivel del mar
-agua.position.y = 5;
-
 scene.add(agua);
+
+function smoothstep(edge0, edge1, value) {
+    const t = Math.max(0, Math.min(1, (value - edge0) / (edge1 - edge0)));
+    return t * t * (3 - 2 * t);
+}
+
+function rebuildTerrain(seedText) {
+    random = mulberry32(stringToSeed(seedText));
+    noise = createNoise2D(random);
+
+    const montanas = generarCentrosMontanas(5);
+    const dunas = generarCentrosDunas(6);
+    const roundness = Number(roundnessInput.value) / 100;
+
+    for (let i = 0; i < vertices.count; i++) {
+        const x = vertices.getX(i);
+        const y = vertices.getY(i);
+        let altura = 0;
+
+        for (const m of montanas) {
+            altura += mountain(
+                x,
+                y,
+                (m.x - 50) * 5,
+                (m.y - 50) * 5,
+                m.altura,
+                m.radio
+            );
+        }
+
+        const distanciaNormalizada = Math.hypot(x, y) / 500;
+        const borde = smoothstep(0.6, 1, distanciaNormalizada);
+        const alturaBase = altura > 30 ? altura : -5;
+        vertices.setZ(i, -5 + (alturaBase + 5) * (1 - roundness * borde));
+    }
+
+    for (let i = 0; i < verticesA.count; i++) {
+        const x = verticesA.getX(i);
+        const y = verticesA.getY(i);
+        let altura = 0;
+
+        for (const d of dunas) {
+            const centroX = (d.x - 50) * 6;
+            const centroY = (d.y - 50) * 6;
+
+            if (Math.hypot(x - centroX, y - centroY) > d.radio * 3) continue;
+
+            altura += mountain(x, y, centroX, centroY, d.altura, d.radio);
+        }
+
+        const distanciaNormalizada = Math.hypot(x, y) / 500;
+        const borde = smoothstep(0.6, 1, distanciaNormalizada);
+        const alturaBase = altura > 20 ? altura : -5;
+        verticesA.setZ(i, -5 + (alturaBase + 5) * (1 - roundness * borde));
+    }
+
+    terrainGeometry.attributes.position.needsUpdate = true;
+    terrainGeometry.computeVertexNormals();
+    arenaGeometry.attributes.position.needsUpdate = true;
+    arenaGeometry.computeVertexNormals();
+}
+
+waterLevelInput.addEventListener('input', () => {
+    agua.position.y = Number(waterLevelInput.value);
+    waterValue.value = waterLevelInput.value;
+});
+
+roundnessInput.addEventListener('input', () => {
+    roundnessValue.value = roundnessInput.value;
+    rebuildTerrain(seedInput.value);
+});
+
+generateButton.addEventListener('click', () => {
+    rebuildTerrain(seedInput.value);
+});
+
+randomSeedButton.addEventListener('click', () => {
+    seedInput.value = Math.floor(Math.random() * 4294967296).toString(36);
+    rebuildTerrain(seedInput.value);
+});
+
+agua.position.y = Number(waterLevelInput.value);
+rebuildTerrain(seedInput.value);
+
 // Ejes para orientación (opcional)
 const axes = new THREE.AxesHelper(20);
 scene.add(axes);
